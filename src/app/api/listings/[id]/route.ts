@@ -60,6 +60,11 @@ export async function PATCH(request: Request, { params }: Params) {
         description: data.description,
         phone: data.phone,
         imageUrl: data.imageUrl || null,
+        condition: data.condition,
+        mileageKm:
+          data.kind !== "charger" && data.condition === "used"
+            ? data.mileageKm ?? null
+            : null,
         status: user.role === "ADMIN" ? listing.status : "PENDING",
       },
     });
