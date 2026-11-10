@@ -1,5 +1,5 @@
 /* FleetMarket SA PWA offline app-shell. Bump version when static files change. */
-const CACHE = 'fleetmarket-sa-shell-v2';
+const CACHE = 'fleetmarket-sa-shell-v3';
 const SHELL = ['./','./index.html','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
