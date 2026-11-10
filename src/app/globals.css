@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #142538;
+  --muted: #718093;
+  --line: #e7edf2;
+  --blue: #1468f2;
+  --navy: #0d1825;
+  --paper: #f5f8fb;
+  --green: #17a77b;
+}
+
+body {
+  color: var(--ink);
+  background: #fff;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-[10px] border border-[#d7e1eb] bg-white px-4 py-2.5 text-sm font-bold text-[var(--ink)] transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-55;
+}
+
+.btn-primary {
+  @apply border-[var(--blue)] bg-[var(--blue)] text-white hover:bg-blue-600;
+}
+
+.btn-dark {
+  @apply border-[var(--navy)] bg-[var(--navy)] text-white hover:bg-slate-800;
+}
+
+.field {
+  @apply flex flex-col gap-1.5;
+}
+
+.field label {
+  @apply text-[11px] font-extrabold uppercase tracking-wide text-[var(--muted)];
+}
+
+.field input,
+.field select,
+.field textarea {
+  @apply w-full rounded-[9px] border border-[#dbe4ed] bg-white px-3 py-3 text-[var(--ink)] outline-none focus:border-[var(--blue)] focus:ring-[3px] focus:ring-[rgba(20,104,242,0.1)];
+}
+
+.card {
+  @apply overflow-hidden rounded-[17px] border border-[var(--line)] bg-white shadow-[0_7px_22px_rgba(21,36,59,0.03)];
+}
+
+.pill {
+  @apply rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600;
+}
+
+.tip {
+  @apply rounded-[9px] bg-[#f0f6ff] p-3 text-xs leading-relaxed text-[#45658b];
+}

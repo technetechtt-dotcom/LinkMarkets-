@@ -1,0 +1,10 @@
+{
+  "name": "FleetMarket SA — Vehicle Rental Marketplace",
+  "short_name": "FleetMarket SA",
+  "description": "Browse, list and request delivery motorcycles and e-hailing cars in South Africa.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d1825",
+  "lang": "en-ZA"
+}

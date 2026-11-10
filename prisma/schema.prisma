@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  DRIVER
+  OWNER
+  ADMIN
+}
+
+enum ListingStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  REJECTED
+  REMOVED
+}
+
+enum RequestStatus {
+  OPEN
+  FULFILLED
+  CLOSED
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+  ACTIONED
+}
+
+enum ReportTarget {
+  LISTING
+  REQUEST
+  USER
+  ENQUIRY
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  name            String
+  phone           String
+  role            Role      @default(DRIVER)
+  // Can also act as owner when posting vehicles
+  canListVehicles Boolean   @default(false)
+  suspended       Boolean   @default(false)
+  popiaConsentAt  DateTime?
+  popiaVersion    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  listings        Listing[]
+  requests        RentalRequest[]
+  enquiriesSent   Enquiry[]       @relation("EnquiryFrom")
+  requestReplies  RequestReply[]
+  reportsFiled    AbuseReport[]   @relation("Reporter")
+  consentLogs     ConsentLog[]
+  notifications   NotificationLog[]
+}
+
+model Listing {
+  id          String        @id @default(cuid())
+  ownerId     String
+  owner       User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  kind        String
+  make        String
+  city        String
+  province    String
+  price       Int
+  period      String
+  platforms   String
+  description String
+  imageUrl    String?
+  phone       String
+  status      ListingStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  enquiries Enquiry[]
+  reports   AbuseReport[]
+}
+
+model RentalRequest {
+  id          String        @id @default(cuid())
+  requesterId String
+  requester   User          @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  kind        String
+  city        String
+  province    String
+  budgetMax   Int?
+  period      String
+  platforms   String
+  details     String
+  status      RequestStatus @default(OPEN)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  replies RequestReply[]
+  reports AbuseReport[]
+}
+
+model Enquiry {
+  id          String    @id @default(cuid())
+  listingId   String
+  listing     Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  fromUserId  String
+  fromUser    User      @relation("EnquiryFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  message     String
+  createdAt   DateTime  @default(now())
+  notifiedAt  DateTime?
+  notifyError String?
+}
+
+model RequestReply {
+  id        String        @id @default(cuid())
+  requestId String
+  request   RentalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  ownerId   String
+  owner     User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  message   String
+  createdAt DateTime      @default(now())
+  notifiedAt DateTime?
+}
+
+model AbuseReport {
+  id         String       @id @default(cuid())
+  reporterId String
+  reporter   User         @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType ReportTarget
+  targetId   String
+  reason     String
+  details    String?
+  status     ReportStatus @default(OPEN)
+  adminNote  String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  listingId  String?
+  listing    Listing?     @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  requestId  String?
+  request    RentalRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+}
+
+model ConsentLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  version   String
+  purpose   String
+  acceptedAt DateTime @default(now())
+  ip        String?
+}
+
+model NotificationLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  channel   String
+  toAddress String
+  subject   String
+  body      String
+  status    String
+  error     String?
+  createdAt DateTime @default(now())
+}
+
+model RetentionPolicy {
+  id                String   @id @default("default")
+  enquiryDays       Int      @default(365)
+  reportDays        Int      @default(730)
+  notificationDays  Int      @default(90)
+  inactiveUserDays  Int      @default(1095)
+  updatedAt         DateTime @updatedAt
+}

@@ -1,37 +1,74 @@
-# FleetMarket SA — Standalone Progressive Web Application (PWA)
+# FleetMarket SA (production platform)
 
-FleetMarket SA is a **separate app from RiderLink SA**. It is an installable, mobile-responsive marketplace prototype for advertising delivery motorcycles and e-hailing cars in South Africa.
+South African marketplace for renting delivery motorcycles and e-hailing cars.
 
-## Run and install locally
+Drivers can browse listings **or post rental requests**. Owners list vehicles and receive enquiry notifications. Admins moderate listings and abuse reports.
 
-1. Extract this ZIP, then open the `fleetmarket-sa` folder in Cursor / VS Code.
-2. Start a local web server from inside the folder: `python -m http.server 8000` (or VS Code Live Server).
-3. Visit `http://localhost:8000` in Chrome or Edge.
-4. After the site loads, use the **Install app** prompt (when offered), or your browser menu's **Install app** option. On iPhone Safari, use **Share → Add to Home Screen**.
-5. For real-device installation over the internet, deploy the folder to an **HTTPS** host. A file opened with `file://` cannot register its service worker.
+## Stack
 
-## PWA features
-- `manifest.webmanifest` with app name, standalone window, colours and icons.
-- 192px, 512px maskable icons plus an Apple touch icon.
-- `service-worker.js` caches the local app shell for offline reopening after the first successful visit.
-- Network-first navigation so updated app versions can be fetched when online.
-- Offline/online status indicator and browser-supported install prompt.
-- Responsive layout and local browser storage for prototype listings and enquiries.
+- Next.js 15 (App Router) + TypeScript + Tailwind
+- Auth.js (NextAuth v5) credentials auth with roles: `DRIVER` | `OWNER` | `ADMIN`
+- Prisma + SQLite (local) / Postgres (`DATABASE_URL`) in production
+- Zod validation, in-memory rate limits, Sharp photo uploads
+- Nodemailer SMTP for enquiry/request notifications (console fallback in dev)
+- POPIA privacy policy + consent logging
+- Vercel-ready HTTPS hosting (`vercel.json`)
 
-## Marketplace prototype features
-- Browse demo vehicle listings; search and filter by type, city and intended platform.
-- Save favourites and create, edit, pause or delete local vehicle listings.
-- View listing details and save local demo enquiries.
-- Sample listings, names and owners are **fictional**.
+## Production guarantees in this codebase
 
-## Limits — important
-This is **not yet a live multi-user marketplace**. Listings, favourites and enquiries are saved only in the current browser's localStorage, not shared across devices. They can disappear if browser data is cleared or the app is uninstalled. The PWA installation **does not add** a cloud database, accounts or real message delivery. External photos/fonts require network access unless already cached by the browser. Service-worker shell caching does not guarantee external photo availability offline. The app does not support background sync or push notifications yet.
+| Requirement | Implementation |
+|---|---|
+| Auth + roles | `/register`, `/login`, JWT session with role claims |
+| Shared DB + API | Prisma models + `/api/*` routes (no localStorage marketplace data) |
+| Server-side ownership | Mutations check `ownerId` / admin |
+| Enquiry delivery | Email (or logged console) to listing owner |
+| Photo upload | `/api/uploads` → optimized WebP in `/public/uploads` |
+| HTTPS hosting | Deploy to Vercel (or any HTTPS Node host) |
+| POPIA | `/privacy`, required consent, `ConsentLog`, retention policy model |
+| Validation + rate limits | Zod schemas + `rateLimit()` per IP/user |
+| Admin moderation | `/admin` + abuse reports API |
+| No demo data in prod | Seed never creates fictional listings; `SEED_DEMO` ignored in production |
 
-## Production requirements
-- Secure owner and driver registration, roles and listing ownership controls.
-- Shared backend database, media uploads, moderation, abuse reports and fraud prevention.
-- Server-side listing search, owner messaging and notifications.
-- POPIA-compliant policies, consent and data handling, e-hailing eligibility verification.
-- Deploy on HTTPS, test installations on Android/iOS and test offline upgrades.
+## Local setup
 
-No RiderLink SA files or data are included or modified.
+```bash
+cp .env.example .env
+npm install
+npx prisma migrate dev --name init
+npm run db:seed
+npm run dev
+```
+
+Open http://localhost:3000
+
+Default admin (from `.env`):
+
+- Email: `admin@fleetmarket.sa`
+- Password: `ChangeMeAdmin123!`
+
+## Production deploy (HTTPS)
+
+1. Create a Postgres database and set `DATABASE_URL`.
+2. Set strong `AUTH_SECRET`, `APP_URL=https://your-domain`, SMTP vars, admin credentials.
+3. Keep `SEED_DEMO=false`.
+4. Deploy to Vercel (project root = this folder):
+
+```bash
+npx vercel --prod
+```
+
+5. Run migrations against production DB:
+
+```bash
+npx prisma migrate deploy
+npm run db:seed
+```
+
+## Scripts
+
+- `npm run dev` — local server
+- `npm run build` / `npm start` — production server
+- `npm run db:seed` — admin + retention policy only
+- `npm run db:studio` — Prisma Studio
+
+Legacy static PWA prototype is archived under `legacy-pwa/`.
