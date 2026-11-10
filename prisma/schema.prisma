@@ -79,6 +79,8 @@ model Listing {
   description String
   imageUrl    String?
   phone       String
+  condition   String        @default("used") // new | used
+  mileageKm   Int? // required for used vehicles (not chargers)
   status      ListingStatus @default(PENDING)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt

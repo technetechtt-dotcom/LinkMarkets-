@@ -24,7 +24,9 @@ export async function GET(request: Request) {
     where.status = ListingStatus.ACTIVE;
   }
 
-  if (kind === "motorcycle" || kind === "car") where.kind = kind;
+  if (kind === "motorcycle" || kind === "car" || kind === "ev" || kind === "charger") {
+    where.kind = kind;
+  }
 
   const listings = await prisma.listing.findMany({
     where,
@@ -84,6 +86,11 @@ export async function POST(request: Request) {
         description: data.description,
         phone: data.phone,
         imageUrl: data.imageUrl || null,
+        condition: data.condition,
+        mileageKm:
+          data.kind !== "charger" && data.condition === "used"
+            ? data.mileageKm ?? null
+            : null,
         // New listings require admin approval in production workflow
         status: user.role === "ADMIN" ? "ACTIVE" : "PENDING",
       },

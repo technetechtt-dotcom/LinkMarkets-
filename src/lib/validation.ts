@@ -15,18 +15,32 @@ export const registerSchema = z.object({
     .refine((v) => v === true, { message: "POPIA consent is required" }),
 });
 
-export const listingSchema = z.object({
-  kind: z.enum(["motorcycle", "car"]),
-  make: z.string().trim().min(2).max(80),
-  city: z.string().trim().min(2).max(60),
-  province: provinceEnum,
-  price: z.coerce.number().int().min(1).max(1_000_000),
-  period: z.enum(["day", "week", "month"]),
-  platforms: z.array(platformEnum).min(1).max(8),
-  description: z.string().trim().min(10).max(1000),
-  phone: z.string().trim().min(7).max(25),
-  imageUrl: z.string().url().max(500).optional().or(z.literal("")),
-});
+export const listingSchema = z
+  .object({
+    kind: z.enum(["motorcycle", "car", "ev", "charger"]),
+    make: z.string().trim().min(2).max(80),
+    city: z.string().trim().min(2).max(60),
+    province: provinceEnum,
+    price: z.coerce.number().int().min(1).max(1_000_000),
+    period: z.enum(["day", "week", "month"]),
+    platforms: z.array(platformEnum).min(1).max(8),
+    description: z.string().trim().min(10).max(1000),
+    phone: z.string().trim().min(7).max(25),
+    imageUrl: z.string().url().max(500).optional().or(z.literal("")),
+    condition: z.enum(["new", "used"]),
+    mileageKm: z.coerce.number().int().min(0).max(2_000_000).optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.kind !== "charger" && data.condition === "used") {
+      if (data.mileageKm == null || Number.isNaN(data.mileageKm)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["mileageKm"],
+          message: "Odometer km is required for used vehicles",
+        });
+      }
+    }
+  });
 
 export const requestSchema = z.object({
   kind: z.enum(["motorcycle", "car", "either"]),

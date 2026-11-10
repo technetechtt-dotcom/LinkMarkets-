@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PLATFORMS, PROVINCES } from "@/lib/constants";
 
@@ -10,6 +10,13 @@ export default function NewListingPage() {
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [kind, setKind] = useState("motorcycle");
+  const [condition, setCondition] = useState("used");
+
+  const needsKm = useMemo(
+    () => kind !== "charger" && condition === "used",
+    [kind, condition],
+  );
 
   async function onUpload(file: File) {
     setUploading(true);
@@ -32,8 +39,9 @@ export default function NewListingPage() {
     setError("");
     const form = new FormData(e.currentTarget);
     const platforms = form.getAll("platforms").map(String);
+    const mileageRaw = String(form.get("mileageKm") || "").trim();
     const payload = {
-      kind: String(form.get("kind")),
+      kind,
       make: String(form.get("make")),
       city: String(form.get("city")),
       province: String(form.get("province")),
@@ -43,6 +51,8 @@ export default function NewListingPage() {
       description: String(form.get("description")),
       phone: String(form.get("phone")),
       imageUrl,
+      condition,
+      mileageKm: needsKm ? Number(mileageRaw) : null,
     };
     const res = await fetch("/api/listings", {
       method: "POST",
@@ -52,7 +62,7 @@ export default function NewListingPage() {
     const data = await res.json();
     setLoading(false);
     if (!res.ok) {
-      setError(data.error || "Could not create listing");
+      setError(data.error || data.issues?.[0]?.message || "Could not create listing");
       return;
     }
     router.push(`/listings/${data.listing.id}`);
@@ -62,23 +72,48 @@ export default function NewListingPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="font-[family-name:var(--font-display)] text-3xl font-extrabold">
-        List a vehicle
+        List for rent
       </h1>
       <p className="mt-2 text-sm text-[var(--muted)]">
-        New listings go to admin review (PENDING) before appearing publicly, unless you are an admin.
+        Include condition. Used vehicles require odometer km. You can also list EVs and charging points.
       </p>
       <form onSubmit={onSubmit} className="mt-6 grid gap-4 sm:grid-cols-2">
         <div className="field">
-          <label>Vehicle type</label>
-          <select name="kind" required defaultValue="motorcycle">
+          <label>Listing type</label>
+          <select
+            name="kind"
+            required
+            value={kind}
+            onChange={(e) => setKind(e.target.value)}
+          >
             <option value="motorcycle">Motorcycle</option>
             <option value="car">Car</option>
+            <option value="ev">Electric vehicle (EV)</option>
+            <option value="charger">EV charging station / point</option>
           </select>
         </div>
         <div className="field">
-          <label>Make & model</label>
+          <label>{kind === "charger" ? "Charger make / model" : "Make & model"}</label>
           <input name="make" required maxLength={80} />
         </div>
+        <div className="field">
+          <label>Condition</label>
+          <select
+            name="condition"
+            required
+            value={condition}
+            onChange={(e) => setCondition(e.target.value)}
+          >
+            <option value="new">Brand new</option>
+            <option value="used">Used</option>
+          </select>
+        </div>
+        {needsKm && (
+          <div className="field">
+            <label>Odometer (km)</label>
+            <input name="mileageKm" type="number" min={0} required />
+          </div>
+        )}
         <div className="field">
           <label>City</label>
           <input name="city" required maxLength={60} />
@@ -108,7 +143,7 @@ export default function NewListingPage() {
           <input name="phone" required maxLength={25} />
         </div>
         <div className="field sm:col-span-2">
-          <label>Platforms</label>
+          <label>Platforms / use case</label>
           <div className="flex flex-wrap gap-3 pt-1">
             {PLATFORMS.map((p) => (
               <label key={p} className="text-xs font-semibold">
